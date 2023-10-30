@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="description"
+        content="Text-to-3D with Classifier Score Distillation">
+  <meta name="keywords" content="3D generation, textures, diffusion">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Classifier Score Distillation</title>
+
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro"
+        rel="stylesheet">
+
+  <link rel="stylesheet" href="./static/css/bulma.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-carousel.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-slider.min.css">
+  <link rel="stylesheet" href="./static/css/fontawesome.all.min.css">
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+  <link rel="stylesheet" href="./static/css/index.css">
+  <link rel="icon" href="./static/icon.png">
+  <!-- Import the component -->
+  <!-- <link rel="stylesheet" href="static/css/bootstrap.min.css">
+  <link rel="stylesheet" href="static/css/Highlight-Clean.css">
+  <link rel="stylesheet" href="static/css/styles.css"> -->
+
+  <style>
+    .render_wrapper {
+        position: relative;
+        height: 350px;
+    }
+    .external-link {
+    color: #ffffff !important; 
+    background-color: rgb(18, 20, 23) !important;
+    border-radius: 20px !important;
+    font-size: 15px !important;
+    }
+
+    .external-link .icon {
+    font-size: 30px !important;
+    }
+
+    .external-link:hover {
+    background-color: #555555 !important;
+    }
+
+    .conference {
+    font-family: 'Google Sans', sans-serif;
+    color: hsl(240, 2%, 10%) !important;
+    font-family: 'Merriweather', serif;
+    font-weight: 500;
+    }
+
+    .results-carousel textbox {
+    font-size: 7px; 
+    font-family: 'Google Sans', cursive, sans-serif;
+    color: hsl(321, 56%, 56%) !important;
+    }
+    .dialog-box {
+        background-color: rgba(255, 255, 255, 0.5); 
+        border: 1px solid rgba(96, 85, 85, 0.494);
+        padding: 10px; 
+        border-radius: 15px; 
+        z-index: 1000; 
+        font-size: 14px; 
+        font-family: 'Comic Sans MS', cursive, sans-serif; 
+        color: hsl(322, 33%, 22%) !important;
+        font-weight: bold; 
+    }
+    .author-block a {
+    color: hsl(245, 45%, 66%) !important;
+    font-family: 'Merriweather', serif;
+    font-weight: 700;
+    }
+
+    .affiliation-index {
+        font-size: 0.8em;
+        vertical-align: super; 
+        color: inherit;
+    }
+
+    .affiliations {
+        
+        font-size: 0.9em;
+        margin-top: 10px;
+        white-space: nowrap;  
+    }
+
+    .affiliations sup {
+        margin-left: 5px;
+        margin-right: 5px;
+    }
+    .formal-title {
+    color: black;
+    font-family: "Times New Roman", Times, serif; 
+    margin-bottom: 30px; 
+    }
+    #thumbnails {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    }
+    .thumbnail-item {
+    flex-basis: calc(50% - 10px); 
+    margin: 5px;
+    }
+    #button-container {
+    text-align: center;
+    margin-top: 20px;
+    }
+
+    .page-button {
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+    border-radius: 12px;
+    transition: background-color 0.3s;
+    }
+
+    .page-button:hover {
+    background-color: #009eb3;
+    }
+    .highlight {
+        font-weight: bold;
+        color:hsl(245, 45%, 66%)
+    }
+
+    .full-width-video {
+        width: 100%;
+        height: auto;
+        max-width: 100%;
+        pointer-events: none; 
+    }
+
+
+    .methods-row {
+        display: flex; 
+        justify-content: space-between; /* 等距离地分布在容器中 */
+        margin-bottom: 10px;
+    }
+
+    .method-name {
+        flex: 1;  /* 使每个方法名称的格子有相同的大小 */
+        text-align: center; /* 文本居中 */
+        font-weight: bold;
+    }
+
+    .outer-container {
+        width: 80%;  /* or any width you prefer */
+        margin: auto;
+    }
+
+
+
+  </style>
+
+  <!-- Import the component -->
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.1.1/model-viewer.min.js"></script>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+  <script defer src="./static/js/fontawesome.all.min.js"></script>
+  <script src="./static/js/bulma-carousel.min.js"></script>
+  <script src="./static/js/bulma-slider.min.js"></script>
+  <script src="./static/js/index.js"></script>
+
+</head>
+<body>
+
+<section class="hero">
+    <div class="hero-body">
+        <div class="container is-max-desktop">
+            <div class="columns is-centered">
+                <div class="column has-text-centered">
+                    <h1 class="title is-1 publication-title">Text-to-3D with Classifier Score Distillation</h1>
+                    <div>
+                        <span class="is-size-5 author-block">
+                            <a href="https://scholar.google.com/citations?user=JX8kSoEAAAAJ&hl=zh-CN" target="_Blank">Xin Yu</a><sup class="affiliation-index">1,3</sup>,
+                        </span>
+                        <span class="is-size-5 author-block">
+                            <a href="https://scholar.google.com/citations?user=b7ZJV9oAAAAJ&hl=en" target="_Blank">Yuan-Chen Guo</a><sup class="affiliation-index">2,3</sup>,
+                        </span>
+                        <span class="is-size-5 author-block">
+                            <a href="https://scholar.google.com/citations?user=a7AMvgkAAAAJ&hl=zh-CN" target="_Blank">Yangguang Li</a><sup class="affiliation-index">3</sup>,
+                        </span>
+                        <span class="is-size-5 author-block">
+                            <a href="https://scholar.google.com/citations?user=Dqjnn0gAAAAJ&hl=zh-CN" target="_Blank">Ding Liang</a><sup class="affiliation-index">3</sup>,
+                        </span>
+                        <span class="is-size-5 author-block">
+                            <a href="https://scholar.google.com/citations?user=AWtV-EQAAAAJ&hl=en" target="_Blank">Song-Hai Zhang</a><sup class="affiliation-index">2</sup>,
+                        </span>
+                        <span class="is-size-5 author-block">
+                            <a href="https://xjqi.github.io/" target="_Blank">Xiaojuan Qi</a><sup class="affiliation-index">1</sup>
+                        </span>
+                    </div>
+
+                    <div class="is-size-5 affiliations">
+                        <sup class="affiliation-index">1</sup>The University of Hong Kong  
+                        <sup class="affiliation-index">2</sup>Tsinghua University  
+                        <sup class="affiliation-index">3</sup>VAST
+                    </div>
+
+                    <!-- <div class="is-size-5 conference">
+                        <span class="author-block">ICLR 2024</span>
+                    </div> -->
+
+                    <div class="column has-text-centered">
+                        <div class="publication-links">
+                            <span class="link-block">
+                                <a class="external-link button is-normal is-rounded is-dark" href="#">
+                                    <span class="icon">
+                                        <i class="ai ai-arxiv"></i>
+                                    </span>
+                                    <span>arXiv</span>
+                                </a>
+                            </span>
+
+                            <!-- Github Link. -->
+                            <span class="link-block">
+                                <a href="#" class="external-link button is-normal is-rounded is-dark">
+                                    <span class="icon">
+                                        <i class="fab fa-github"></i>
+                                    </span>
+                                    <span>Code</span>
+                                </a>
+                            </span>
+                            <!-- Dataset Link. -->
+                            <span class="link-block"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Video Insertion -->
+            <div class="outer-container">
+                <div class="columns is-centered">
+                    <div class="column is-one-third">
+                        <video loop playsinline muted autoplay class="video lazy full-width-video">
+                            <source src="static/teasing1.mp4" type="video/mp4">
+                        </video>
+                    </div>
+                    <div class="column is-one-third">
+                        <video loop playsinline muted autoplay class="video lazy full-width-video">
+                            <source src="static/teasing2.mp4" type="video/mp4">
+                        </video>
+                    </div>
+                    <div class="column is-one-third">
+                        <video loop playsinline muted autoplay class="video lazy full-width-video">
+                            <source src="static/teasing3.mp4" type="video/mp4">
+                        </video>
+                    </div>
+                </div>
+            </div>
+            <div class="columns is-centered">
+                <div class="column">
+                    <p class="has-text-centered">(Left-Mid) 3D models generated using our method; (Right) Texture synthesis for an existing mesh.</p>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</section>
+
+<!-- Abstract. -->
+<section class="section hero">
+    <div class="container is-max-desktop">
+        <div class="columns is-centered has-text-centered">
+            <div class="column is-four-fifths">
+                <h2 class="title is-3">Abstract</h2>
+                <div class="content has-text-justified">
+                    <p>
+                        Text-to-3D generation has made remarkable progress recently, particularly with
+                        methods based on Score Distillation Sampling (SDS) that leverages pre-trained
+                        2D diffusion models. While the usage of classifier-free guidance is well acknowledged
+                        to be crucial for successful optimization, it is considered an auxiliary trick
+                        rather than the most essential component. <span class="highlight">In this paper, we re-evaluate the role
+                        of classifier-free guidance in score distillation and discover a surprising finding:
+                        the guidance alone is enough for effective text-to-3D generation tasks.</span> We name
+                        this method Classifier Score Distillation (CSD), which can be interpreted as using
+                        an implicit classification model for generation. This new perspective reveals
+                        new insights for understanding existing techniques. We validate the effectiveness
+                        of CSD across a variety of text-to-3D tasks including shape generation, texture
+                        synthesis, and shape editing, achieving results superior to those of state-of-the-art
+                        methods. 
+                        
+                    </p>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- Video Gallery -->
+<section class="section hero">
+<div class="container is-max-desktop" id="videoGallery1">
+    <div class="sticky-top" style="background-color: transparent">
+        <h1 class="title is-3">Example generated objects</h1>
+        <div class="row search">
+            <div class="col-sm-12" style="margin-bottom: 30px">
+                <h4>We present examples of the 3D objects generated by our method here. For more results and comparisons with other methods used during our evaluation, please refer to <a href="#videoGallery2">Comparison on shape generation</a> and <a href="#videoGallery3">Comparison on texture synthesis</a>. We trained our model with a batch size of 1 on a single A800 GPU. We employ the DeepFloyd-IF stage-I to generate a low-resolution NeRF. Subsequently, we use the Stable Diffusion and DMTet representation for high-resolution mesh refinement. Generating each object approximately takes 1 hour.
+                </h4>
+            </div>
+        </div>
+    </div>
+    <div id="thumbnails" class="card-columns captioned_videos list"></div>
+    <div id="button-container">
+        <button id="previousPage" class="page-button">Previous Page</button>
+        <span id="pageInfo"></span>
+        <button id="nextPage" class="page-button">Next Page</button>
+    </div>
+</div>
+</section>
+
+<!-- Video Gallery -->
+<section class="section hero">
+    <div class="container is-max-desktop" id="videoGallery2">
+        <div class="sticky-top" style="background-color: transparent">
+            <h1 class="title is-3">Comparison on shape generation</h1>
+            <div class="row search">
+                <div class="col-sm-12" style="margin-bottom: 20px">
+                    <h4>We compare our method with other text-to-3D methods. We use fixed order here, but random order for user study.</h4>
+                </div>
+            </div>
+        </div>
+        
+        <div class="methods-row">
+            <div class="method-name">Dreamfusion</div>
+            <div class="method-name">Magic3D</div>
+            <div class="method-name">Ours</div>
+        </div>
+        
+        
+        <div id="thumbnails" class="card-columns captioned_videos list"></div>
+        <div id="button-container">
+            <button id="previousPage" class="page-button">Previous Page</button>
+            <span id="pageInfo"></span>
+            <button id="nextPage" class="page-button">Next Page</button>
+        </div>
+    </div>
+</section>
+
+<!-- Video Gallery -->
+<section class="section hero">
+    <div class="container is-max-desktop" id="videoGallery3">
+        <div class="sticky-top" style="background-color: transparent">
+            <h1 class="title is-3">Comparison on texture synthesis</h1>
+            <div class="row search">
+                <div class="col-sm-12" style="margin-bottom: 20px">
+                    <h4>We compare our method with other methods that support text-guided texture synthesis on 3D meshes. We use fixed order here, but random order for user study.</h4>
+                </div>
+            </div>
+        </div>
+        <div class="methods-row">
+            <div class="method-name">Geometry</div>
+            <div class="method-name">Fantasia3D</div>
+            <div class="method-name">Magic3D</div>
+            <div class="method-name">TEXTure</div>
+            <div class="method-name">ProlificDreamer</div>
+            <div class="method-name">Ours</div>
+        </div>
+        <div id="thumbnails" class="card-columns captioned_videos list"></div>
+        <div id="button-container">
+            <button id="previousPage" class="page-button">Previous Page</button>
+            <span id="pageInfo"></span>
+            <button id="nextPage" class="page-button">Next Page</button>
+        </div>
+    </div>
+</section>
+
+<script>
+    
+    function createVideoGallery(options) {
+        var { containerId, modelPaths, perPage, mode, componentName, column} = options;
+        const thumbnails = document.getElementById(containerId).querySelector("#thumbnails");
+        const pageInfoElem = document.getElementById(containerId).querySelector("#pageInfo");
+        const nextPageElem = document.getElementById(containerId).querySelector("#nextPage");
+        const prevPageElem = document.getElementById(containerId).querySelector("#previousPage");
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+        modelPaths = shuffleArray(modelPaths);
+
+        let currentDisplayCount = 0;
+        const totalPageCount = Math.ceil(modelPaths.length / perPage);
+        let currentPage = 1;
+
+        function updatePageInfo() {
+            pageInfoElem.textContent = `Page ${currentPage} of ${totalPageCount}`;
+        }
+
+        function displayPage(startIndex) {
+            $(thumbnails).fadeOut(300, function() {
+                thumbnails.innerHTML = "";
+                const endIndex = Math.min(startIndex + perPage, modelPaths.length);
+                
+                for (let i = startIndex; i < endIndex; i++) {
+                    var outer = document.createElement("DIV");
+                    outer.classList = "thumbnail outer card";
+                    outer.id = 'm' + i;
+                    if (column == 1) outer.setAttribute("style", "background-color: transparent; flex-basis: calc(100% - 10px);");
+                    else outer.setAttribute("style", "background-color: transparent; flex-basis: calc(50% - 10px);");
+                    
+                    var inner = document.createElement("DIV");
+                    inner.classList = "inner card-body";
+
+                    let modelPath = modelPaths[i];
+                    let caption = modelPath.split('/').slice(2).join('/').replace(".mp4", "").replaceAll("_", " ");
+
+                    let captionShort = caption;
+                    var component = document.createElement(componentName);
+                    component.id = 'm' + i;
+                    component.src = modelPath;
+                    if (mode == 'video') {
+                        component.loop = true;
+                        component.playsinline = true;
+                        component.muted = true;
+                        
+                        component.autoplay = true;
+                        component.controls = false;
+                        component.classList = "video lazy";
+                        component.onmouseover = component.pause;
+                        component.onmouseout = component.play;
+                    }
+                    inner.appendChild(component);
+
+                    var componentCaption = document.createElement("h6");
+                    componentCaption.classList = "caption";
+                    componentCaption.title = caption;
+                    
+                    componentCaption.style.fontFamily = 'Comic Sans MS';
+                    componentCaption.style.fontSize = "15px";
+                    componentCaption.style.marginTop = "1px";
+                    componentCaption.style.marginBottom = "20px";
+                    componentCaption.style.textAlign = "center";
+
+
+                    componentCaption.style.height = "50px";  
+                    componentCaption.style.overflow = "hidden";
+
+
+                    componentCaption.style.display = "flex";
+                    componentCaption.style.justifyContent = "center";
+                    componentCaption.style.alignItems = "center";
+                    var a = document.createElement("a");
+                    a.style = "color: black";
+                    a.href = modelPath;
+                    a.appendChild(document.createTextNode(captionShort));
+                    componentCaption.appendChild(a);
+                    inner.appendChild(componentCaption);
+
+                    outer.appendChild(inner);
+                    thumbnails.appendChild(outer);
+                }
+
+                currentDisplayCount = endIndex;
+                updatePageInfo();
+                nextPageElem.disabled = currentPage >= totalPageCount;
+                prevPageElem.disabled = currentPage <= 1;
+
+                $(thumbnails).fadeIn(1000);
+            });
+        }
+
+        nextPageElem.addEventListener("click", function() {
+            if (currentPage < totalPageCount) {
+                currentPage++;
+                displayPage((currentPage - 1) * perPage);
+                updatePageInfo();
+            }
+            nextPageElem.disabled = currentPage >= totalPageCount;
+            prevPageElem.disabled = currentPage <= 1;
+        });
+
+        prevPageElem.addEventListener("click", function() {
+            if (currentPage > 1) {
+                currentPage--;
+                displayPage((currentPage - 1) * perPage);
+                updatePageInfo();
+            }
+            nextPageElem.disabled = currentPage >= totalPageCount;
+            prevPageElem.disabled = currentPage <= 1;
+        });
+
+
+        
+        displayPage(0);
+        updatePageInfo();
+    }
+</script>
+
+<script>
+    
+    const modelPaths_comparison = [
+    "static/geometry/an_airplane_made_out_of_wood.mp4",
+    "static/geometry/an_amigurumi_bulldozer.mp4",
+    "static/geometry/an_English_castle,_aerial_view.mp4",
+    "static/geometry/an_erupting_volcano,_aerial_view.mp4",
+    "static/geometry/an_exercise_bike.mp4",
+    "static/geometry/a_bumblebee_sitting_on_a_pink_flower.mp4",
+    "static/geometry/a_chimpanzee_looking_through_a_telescope.mp4",
+    "static/geometry/a_DSLR_photo_of_an_ice_cream_sundae.mp4",
+    "static/geometry/a_DSLR_photo_of_an_old_car_overgrown_by_vines_and_weeds.mp4",
+    "static/geometry/a_DSLR_photo_of_an_orc_forging_a_hammer_on_an_anvil.mp4",
+    "static/geometry/a_DSLR_photo_of_a_bagel_filled_with_cream_cheese_and_lox.mp4",
+    "static/geometry/a_DSLR_photo_of_a_barbecue_grill_cooking_sausages_and_burger_patties.mp4",
+    "static/geometry/a_DSLR_photo_of_a_bulldozer.mp4",
+    "static/geometry/a_DSLR_photo_of_a_candelabra_with_many_candles_on_a_red_velvet_tablecloth.mp4",
+    "static/geometry/a_DSLR_photo_of_a_car_made_out_of_cheese.mp4",
+    "static/geometry/a_DSLR_photo_of_a_car_made_out_pizza.mp4",
+    "static/geometry/a_DSLR_photo_of_a_cauldron_full_of_gold_coins.mp4",
+    "static/geometry/a_DSLR_photo_of_a_chimpanzee_dressed_like_Henry_VIII_king_of_England.mp4",
+    "static/geometry/a_DSLR_photo_of_a_drum_set_made_of_cheese.mp4",
+    "static/geometry/a_DSLR_photo_of_a_drying_rack_covered_in_clothes.mp4",
+    "static/geometry/a_DSLR_photo_of_a_green_monster_truck.mp4",
+    "static/geometry/a_DSLR_photo_of_a_group_of_dogs_playing_poker.mp4",
+    "static/geometry/a_DSLR_photo_of_a_koala_wearing_a_party_hat_and_blowing_out_birthday_candles_on_a_cake.mp4",
+    "static/geometry/a_DSLR_photo_of_a_model_of_the_eiffel_tower_made_out_of_toothpicks.mp4",
+    "static/geometry/a_DSLR_photo_of_a_mug_of_hot_chocolate_with_whipped_cream_and_marshmallows.mp4",
+    "static/geometry/a_DSLR_photo_of_a_pair_of_headphones_sitting_on_a_desk.mp4",
+    "static/geometry/a_DSLR_photo_of_a_pair_of_tan_cowboy_boots,_studio_lighting,_product_photography.mp4",
+    "static/geometry/a_DSLR_photo_of_a_pile_of_dice_on_a_green_tabletop_next_to_some_playing_cards.mp4",
+    "static/geometry/a_DSLR_photo_of_a_plate_of_fried_chicken_and_waffles_with_maple_syrup_on_them.mp4",
+    "static/geometry/a_DSLR_photo_of_a_plate_piled_high_with_chocolate_chip_cookies.mp4",
+    "static/geometry/a_DSLR_photo_of_a_red_convertible_car_with_the_top_down.mp4",
+    "static/geometry/a_DSLR_photo_of_a_red_pickup_truck_driving_across_a_stream.mp4",
+    "static/geometry/a_DSLR_photo_of_a_red_wheelbarrow_with_a_shovel_in_it.mp4",
+    "static/geometry/a_DSLR_photo_of_a_roast_turkey_on_a_platter.mp4",
+    "static/geometry/a_DSLR_photo_of_a_robot_and_dinosaur_playing_chess,_high_resolution.mp4",
+    "static/geometry/a_DSLR_photo_of_a_robot_arm_picking_up_a_colorful_block_from_a_table.mp4",
+    "static/geometry/a_DSLR_photo_of_a_small_saguaro_cactus_planted_in_a_clay_pot.mp4",
+    "static/geometry/a_DSLR_photo_of_a_stack_of_pancakes_covered_in_maple_syrup.mp4",
+    "static/geometry/a_DSLR_photo_of_a_steaming_basket_full_of_dumplings.mp4",
+    "static/geometry/a_DSLR_photo_of_a_steaming_hot_plate_piled_high_with_spaghetti_and_meatballs.mp4",
+    "static/geometry/a_DSLR_photo_of_a_steampunk_space_ship_designed_in_the_18th_century.mp4",
+    "static/geometry/a_DSLR_photo_of_a_straw_basket_with_a_cobra_coming_out_of_it.mp4",
+    "static/geometry/a_DSLR_photo_of_a_swan_and_its_cygnets_swimming_in_a_pond.mp4",
+    "static/geometry/a_DSLR_photo_of_a_tray_of_Sushi_containing_pugs.mp4",
+    "static/geometry/a_DSLR_photo_of_a_tree_stump_with_an_axe_buried_in_it.mp4",
+    "static/geometry/a_DSLR_photo_of_a_turtle_standing_on_its_hind_legs,_wearing_a_top_hat_and_holding_a_cane.mp4",
+    "static/geometry/a_DSLR_photo_of_a_very_cool_and_trendy_pair_of_sneakers,_studio_lighting.mp4",
+    "static/geometry/a_DSLR_photo_of_a_wine_bottle_and_full_wine_glass_on_a_chessboard.mp4",
+    "static/geometry/a_DSLR_photo_of_cat_wearing_virtual_reality_headset_in_renaissance_oil_painting_high_detail_caravaggio.mp4",     
+    "static/geometry/a_DSLR_photo_of_Mont_Saint-Michel,_France,_aerial_view.mp4",
+    "static/geometry/a_DSLR_photo_of_the_Imperial_State_Crown_of_England.mp4",
+    "static/geometry/a_DSLR_photo_of_two_macaw_parrots_sharing_a_milkshake_with_two_straws.mp4",
+    "static/geometry/a_ficus_planted_in_a_pot.mp4",
+    "static/geometry/a_flower_made_out_of_metal.mp4",
+    "static/geometry/a_frazer_nash_super_sport_car.mp4",
+    "static/geometry/a_freshly_baked_loaf_of_sourdough_bread_on_a_cutting_board.mp4",
+    "static/geometry/a_nest_with_a_few_white_eggs_and_one_golden_egg.mp4",
+    "static/geometry/A_Panther_De_Ville_car.mp4",
+    "static/geometry/a_shiny_red_stand_mixer.mp4",
+    "static/geometry/a_snail_on_a_leaf.mp4",
+    "static/geometry/a_spanish_galleon_sailing_on_the_open_sea.mp4",
+    "static/geometry/a_team_of_butterflies_playing_soccer_on_a_field.mp4",
+    "static/geometry/a_wedge_of_cheese_on_a_silver_platter.mp4",
+    "static/geometry/a_wide_angle_DSLR_photo_of_a_humanoid_banana_sitting_at_a_desk_doing_homework.mp4",
+    "static/geometry/a_wide_angle_zoomed_out_DSLR_photo_of_a_skiing_penguin_wearing_a_puffy_jacket.mp4",
+    "static/geometry/a_zoomed_out_DSLR_photo_of_an_amigurumi_motorcycle.mp4",
+    "static/geometry/a_zoomed_out_DSLR_photo_of_a_3d_model_of_an_adorable_cottage_with_a_thatched_roof.mp4",
+    "static/geometry/a_zoomed_out_DSLR_photo_of_a_baby_bunny_sitting_on_top_of_a_stack_of_pancakes.mp4",
+    "static/geometry/a_zoomed_out_DSLR_photo_of_a_bowl_of_cereal_and_milk_with_a_spoon_in_it.mp4",
+    "static/geometry/a_zoomed_out_DSLR_photo_of_a_bulldozer_made_out_of_toy_bricks.mp4",
+    "static/geometry/a_zoomed_out_DSLR_photo_of_a_fox_working_on_a_jigsaw_puzzle.mp4",
+    "static/geometry/a_zoomed_out_DSLR_photo_of_a_green_tractor.mp4",
+    "static/geometry/a_zoomed_out_DSLR_photo_of_a_group_of_squirrels_rowing_crew.mp4",
+    "static/geometry/a_zoomed_out_DSLR_photo_of_a_kangaroo_sitting_on_a_bench_playing_the_accordion.mp4",
+    "static/geometry/a_zoomed_out_DSLR_photo_of_a_majestic_sailboat.mp4",
+    "static/geometry/a_zoomed_out_DSLR_photo_of_a_mountain_goat_standing_on_a_boulder.mp4",
+    "static/geometry/a_zoomed_out_DSLR_photo_of_a_panda_wearing_a_chef's_hat_and_kneading_bread_dough_on_a_countertop.mp4",
+    "static/geometry/a_zoomed_out_DSLR_photo_of_a_recliner_chair.mp4",
+    "static/geometry/a_zoomed_out_DSLR_photo_of_a_table_with_dim_sum_on_it.mp4",
+    "static/geometry/fries_and_a_hamburger.mp4",
+    "static/geometry/Michelangelo_style_statue_of_dog_reading_news_on_a_cellphone.mp4",
+    ];
+
+    const modelPaths_comparison_texture = [
+    "static/texture/brown_and_cool_Jacket.mp4", 
+    "static/texture/Rugged,_vintage-inspired_hiking_boots_with_a_weathered_leather_finish.mp4", 
+    "static/texture/Uniform_jacket_of_the_captain.mp4", 
+    "static/texture/Vintage_cotton_camera_bag_with_a_pristine_finish.mp4", 
+    "static/texture/Mandalorian_Grogu.mp4", 
+    "static/texture/Transformers_Fallen.mp4", 
+    "static/texture/A_metal_dragon_is_wrapped_around_a_wooden_base.mp4", 
+    "static/texture/an_old_leather_rocker_jacket.mp4", 
+    "static/texture/Sleek,_yellow_motorcycle_with_chrome_accents.mp4", 
+    "static/texture/Decepticon_Trooper.mp4", 
+    "static/texture/Monster_Energy_Drink.mp4", 
+    "static/texture/Mysterious_animal-faced_hiker_with_a_wooden_cane,_leather_attire,_and_a_rugged_backpack,_adorned_with_a_bushy_beard.mp4", 
+    "static/texture/Classic_AE86_with_panda_color_scheme.mp4", 
+    "static/texture/Butterfly.mp4", 
+    "static/texture/Cirilha_lives_in_the_forest.mp4", 
+    "static/texture/Spider_Man.mp4", 
+    "static/texture/Humanoid_warrior_with_a_tiger_head,_adorned_in_Chinese-style_armor,_wielding_traditional_weapons.mp4", 
+    "static/texture/The_poet_is_portrayed_sitting_in_a_bronze_ceremonial_armchair_on_a_three-tiered_pedestal_of_Italian_granite.mp4", 
+    "static/texture/Elf_with_ethereal,_butterfly-like_wings,_radiating_an_aura_of_mystical_elegance.mp4", 
+    "static/texture/Ding_censer_with_an_openwork_cover_and_handles_in_the_shape_of_stylised_dragons.mp4",
+    ];
+
+    const modelPaths_gallary = [
+    "static/gallary/Cyberpunk_hacker,_full_body,_high-quality_futuristic_attire,_8K_resolution,_photorealistic..mp4", 
+"static/gallary/A_high_quality_3D_model_of_a_go-kart,_super_detailed,_8K_resolution.mp4", 
+"static/gallary/Baroque-style_chandelier,_crystal_pendants,_intricate_metalwork,_8K_resolution,_detailed_textures..mp4", 
+"static/gallary/Sushi_set_on_bamboo_plate,_photorealistic_textures,_8K_resolution,_highly_detailed,_detailed_textures..mp4", 
+"static/gallary/A_3D_scan_of_a_Tudor-style_home,_highly_detailed,_8K_resolution.mp4", 
+"static/gallary/Orc_Warrior_from_World_of_Warcraft,_full_body,_high-quality_armor_and_skin_textures,_8K_resolution,_photorealistic..mp4", 
+"static/gallary/Luke_Skywalker_from_Star_Wars,_full_body,_high-quality_Jedi_robes,_8K_resolution,_photorealistic..mp4", 
+"static/gallary/Dante_from_Devil_May_Cry,_full_body,_high-quality_leather_jacket_textures,_8K_resolution,_photorealistic..mp4", 
+"static/gallary/superhero_head,_masked,_caped,_highly_detailed.mp4",  
+"static/gallary/steampunk_robot_head,_intricate_gears,_high_quality_metal_textures,_photorealistic.mp4", 
+"static/gallary/A_high_quality_3D_model_of_a_leather_briefcase,_super_detailed,_8K_resolution.mp4", 
+"static/gallary/Highly_detailed,_steampunk_backpack,_8K_resolution,_detailed_textures..mp4", 
+"static/gallary/Cowboy_wielding_a_lasso,_full_body,_high-quality_leather_textures,_8K_resolution,_photorealistic..mp4", 
+"static/gallary/demon_head,_flaming_eyes,_horned,_scaly_skin,_highly_detailed.mp4", 
+"static/gallary/USB_microphone,_metal_grille,_high-quality_textures,_8K_resolution.mp4", 
+"static/gallary/Full-body_rendering_of_Hermione_Granger,_high-quality,_8K_resolution,_photo-realistic_school_robes..mp4", 
+"static/gallary/Full-body_rendering_of_Aragorn_from_Lord_of_the_Rings,_high-quality,_8K_resolution,_photo-realistic_armor..mp4", 
+"static/gallary/A_classic_vending_machine_well-lit_high_detail,_8K_resolution,_detailed_textures..mp4", 
+"static/gallary/Steampunk_telescope,_high-quality_brass_textures,_functional_gears,_high_resolution,_8K_resolution,_detailed_textures..mp4", 
+"static/gallary/A_high_quality_3D_model_of_a_sport_motorcycle,_8K_resolution,_highly_detailed.mp4", 
+"static/gallary/Photorealistic_render_of_a_colonial_house,_high_quality,_super_detailed.mp4", 
+"static/gallary/Motorcycle_racer,_full_body,_high-quality_racing_suit,_8K_resolution,_photorealistic..mp4", 
+"static/gallary/Yoga_pants,_moisture-wicking_fabric,_photo-realistic,_8K_resolution.mp4", 
+"static/gallary/A_high_quality_3D_model_of_a_ceramic_vase,_8K_resolution,_highly_detailed.mp4", 
+"static/gallary/Mid-century_table_lamp,_floral_design_around_the_base,_lacy_lampshade,_highly_detailed,_8K_resolution,_detailed_textures..mp4", 
+"static/gallary/A_high_quality_3D_model_of_a_school_backpack,_8K_resolution,_highly_detailed.mp4", 
+"static/gallary/A_professional_3d_replica_of_a_white_cyberpunk_sports_car,_futuristic_hyper-car_design,_trending_on_CGSoceity,_highly_detailed_model,_realistic_lighting,_PBR_textures,_8K_resolution,_detailed_textures..mp4", 
+"static/gallary/A_high_quality_3D_model_of_a_CSGO_grenade,_super_detailed,_8K_resolution.mp4", 
+"static/gallary/Leopard_wearing_a_leather_jacket,_full_body,_high-quality_textures,_8K_resolution,_photorealistic..mp4", 
+"static/gallary/Vintage_leather_jacket,_distressed,_high-quality_textures,_8K_resolution.mp4", 
+"static/gallary/A_DSLR_photo_of_a_NASCAR_vehicle,_best_quality,_HD.mp4", 
+"static/gallary/Full-body_SWAT_officer,_high-quality_tactical_gear,_8K_resolution,_photorealistic..mp4", 
+"static/gallary/Nathan_Drake_from_Uncharted,_full_body,_high-quality_cloth_textures,_8K_resolution,_photorealistic..mp4", 
+"static/gallary/Owl_wearing_a_wizard_robe,_full_body,_high-quality_textures,_8K_resolution,_photorealistic..mp4", 
+"static/gallary/Ballistic_helmet,_advanced_padding,_high-quality,_8K_resolution.mp4", 
+"static/gallary/Combat_knife,_serrated_edge,_high-quality_textures,_8K_resolution.mp4", 
+"static/gallary/android_head,_synthetic_skin,_high-quality_camera_eyes,_photorealistic.mp4", 
+"static/gallary/Gandalf_from_Lord_of_the_Rings,_full_body,_high-quality_wizard_robes,_8K_resolution,_photorealistic..mp4", 
+"static/gallary/Wedding_dress,_intricate_lace,_photo-realistic,_high-quality.mp4", 
+"static/gallary/Sports_jersey,_team_logo,_high-quality_textures,_8K_resolution.mp4", 
+"static/gallary/astronaut_head,_reflective_helmet,_oxygen_tank,_photorealistic.mp4", 
+"static/gallary/Digital_camera,_rubber_grip,_high-quality_textures,_8K_resolution.mp4", 
+"static/gallary/chieftain_head,_wolf_pelt_helmet,_war_paint,_highly_detailed.mp4", 
+"static/gallary/Denim_jeans,_ripped_details,_8K_resolution,_photo-realistic.mp4", 
+"static/gallary/Grilled_steak,_herb_butter,_8K_resolution,_photo-realistic.mp4", 
+"static/gallary/A_3D_scan_of_a_canopy_bed,_highly_detailed,_8K_resolution.mp4", 
+"static/gallary/A_3D_scan_of_a_dirt_bike,_highly_detailed,_8K_resolution.mp4", 
+"static/gallary/Daenerys_Targaryen_from_Game_of_Thrones,_full_body,_high-quality_costumes,_8K_resolution,_photorealistic..mp4", 
+"static/gallary/zombie_queen_head,_decayed_crown,_highly_detailed,_photorealistic.mp4", 
+"static/gallary/Blooming_rose,_photo-realistic_petals,_high-quality_textures,_8K_resolution.mp4", 
+"static/gallary/Harry_Potter_holding_a_wand,_full_body,_high-quality_robe_textures,_8K_resolution,_photorealistic..mp4", 
+"static/gallary/clown_head,_makeup_details,_vibrant_colors,_highly_detailed.mp4", 
+"static/gallary/Geralt_of_Rivia_from_The_Witcher,_full_body,_high-quality_leather_armor_textures,_8K_resolution,_photorealistic..mp4", 
+"static/gallary/Ancient_stone_tablet,_weathered_texture,_8K_resolution,_high-quality.mp4", 
+"static/gallary/John_Wick,_full_body,_high-quality_tactical_suit,_8K_resolution,_photorealistic..mp4", 
+"static/gallary/Jeep,_high-quality,_8K_resolution,_detailed_textures..mp4", 
+"static/gallary/Jack_Sparrow_from_Pirates_of_the_Caribbean,_full_body,_high-quality_textures,_8K_resolution,_photorealistic..mp4", 
+"static/gallary/Squirrel_in_a_superhero_costume,_full_body,_bushy_tail,_8K_resolution,_determined_expression,_holding_a_tiny_shield..mp4", 
+"static/gallary/A_high_quality_3D_model_of_a_modern_villa,_8K_resolution,_highly_detailed.mp4", 
+"static/gallary/Art_Deco_lamp,_geometric_glass_shade,_high-quality_brass_base,_intricate_details,_8K_resolution,_detailed_textures..mp4", 
+"static/gallary/orc_head,_tusks,_scarred_skin,_highly_detailed.mp4", 
+"static/gallary/Nikon_FM_camera,_photorealistic_textures,_high_detail,_high-quality,_8K_resolution,_detailed_textures..mp4", 
+"static/gallary/Lobster_dinner,_butter_sauce,_high-quality_textures,_8K_resolution.mp4", 
+"static/gallary/Bear_in_firefighter_gear,_full_body,_8K_resolution,_high-quality_textures,_photorealistic..mp4", 
+"static/gallary/A_3D_scan_of_a_CSGO_crate,_highly_detailed,_8K_resolution.mp4", 
+"static/gallary/banshee_head,_flowing_white_hair,_translucent_skin,_photorealistic.mp4", 
+"static/gallary/Bulletproof_vest,_modular_design,_high-quality_textures,_8K_resolution.mp4", 
+"static/gallary/A_high_quality_3D_model_of_a_medieval_sword,_8K_resolution,_highly_detailed.mp4", 
+"static/gallary/Legolas_from_Lord_of_the_Rings,_full_body,_high-quality_elven_armor,_8K_resolution,_photorealistic..mp4", 
+"static/gallary/Big_slice_of_salmon_fillet,_high-quality,_8K_resolution,_detailed_textures..mp4", 
+"static/gallary/A_high_quality_3D_model_of_a_CSGO_knife,_8K_resolution,_highly_detailed.mp4", 
+"static/gallary/Aloy_from_Horizon_Zero_Dawn,_full_body,_high-quality_leather_and_metal_armor_textures,_8K_resolution,_photorealistic..mp4", 
+"static/gallary/Full-body_rendering_of_Iron_Man,_high-quality_armor_detailing,_8K_resolution,_photorealistic..mp4", 
+"static/gallary/Photorealistic_render_of_a_rocking_chair,_high_quality,_super_detailed.mp4", 
+"static/gallary/knight_head,_visor_down,_rusty_armor,_battle_scars,_photorealistic.mp4",
+    ]
+    
+    createVideoGallery({
+        containerId: "videoGallery1",
+        modelPaths: modelPaths_gallary,  
+        perPage: 6,
+        mode: "video",
+        componentName: "VIDEO",
+        column: 2,
+    });
+
+    createVideoGallery({
+        containerId: "videoGallery2",
+        modelPaths: modelPaths_comparison,  
+        perPage: 2,
+        mode: "video",
+        componentName: "VIDEO",
+        column: 1,
+        
+    });
+
+    createVideoGallery({
+        containerId: "videoGallery3",
+        modelPaths: modelPaths_comparison_texture,  
+        perPage: 2,
+        mode: "video",
+        componentName: "VIDEO",
+        column: 1,
+        
+    });
+
+</script>
+
+<footer class="footer">
+    <div class="container">
+        <div class="content has-text-centered">
+            <!-- <a class="icon-link" href="#">
+                <i class="fas fa-file-pdf"></i>
+            </a>
+            <a class="icon-link" href="https://github.com/XinYu-Andy" class="external-link" disabled>
+                <i class="fab fa-github"></i>
+            </a> -->
+        </div>
+        <div class="columns is-centered">
+            <div class="column is-8">
+                <div class="content">
+                    <p style="text-align:center">
+                        Please contact <a href="https://github.com/XinYu-Andy">Xin Yu</a> for feedback and questions.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>
+
+</body>
+</html>
